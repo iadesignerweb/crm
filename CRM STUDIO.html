@@ -1,0 +1,1355 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>CRM STUDIO</title>
+    <!-- Ícones Font Awesome (CDN) -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
+    <!-- Chart.js para o gráfico de vendas (CDN) -->
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <style>
+        /* Variáveis CSS */
+        :root {
+            --primary-color: #007bff; /* Azul vibrante */
+            --secondary-color: #6c757d; /* Cinza */
+            --accent-color: #28a745; /* Verde para sucesso */
+            --background-light: #f8f9fa; /* Fundo claro */
+            --card-background: #ffffff; /* Fundo do card */
+            --text-color-dark: #343a40; /* Texto principal */
+            --text-color-light: #6c757d; /* Texto secundário */
+            --border-color: #e9ecef; /* Cor da borda */
+            --shadow-light: rgba(0, 0, 0, 0.05);
+            --header-height: 60px;
+            --sidebar-width: 250px;
+        }
+
+        /* Reset básico */
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+            background-color: var(--background-light);
+            color: var(--text-color-dark);
+            line-height: 1.6;
+            overflow-x: hidden; /* Evita scroll horizontal */
+        }
+
+        /* Container principal da aplicação */
+        .app-container {
+            display: flex;
+            flex-direction: column;
+            min-height: 100vh;
+        }
+
+        /* Header */
+        .app-header {
+            background-color: var(--card-background);
+            color: var(--text-color-dark);
+            padding: 0 15px;
+            height: var(--header-height);
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            border-bottom: 1px solid var(--border-color);
+            box-shadow: 0 2px 4px var(--shadow-light);
+            position: sticky;
+            top: 0;
+            z-index: 1000;
+        }
+
+        .app-title {
+            font-size: 1.2rem;
+            font-weight: 600;
+            margin: 0;
+            flex-grow: 1; /* Permite que o título ocupe espaço central */
+            text-align: center; /* Centraliza o título */
+        }
+
+        .menu-toggle {
+            background: none;
+            border: none;
+            font-size: 1.5rem;
+            color: var(--text-color-dark);
+            cursor: pointer;
+            padding: 5px;
+            margin-right: 15px; /* Espaço entre o botão de menu e o título */
+        }
+
+        .header-actions {
+            display: flex;
+            align-items: center;
+            margin-left: 15px; /* Espaço entre o título e as ações */
+        }
+
+        .search-button {
+            background: none;
+            border: none;
+            font-size: 1.2rem;
+            color: var(--text-color-dark);
+            cursor: pointer;
+            margin-right: 10px;
+        }
+
+        .user-avatar {
+            width: 36px;
+            height: 36px;
+            border-radius: 50%;
+            background-color: var(--primary-color);
+            border: 2px solid var(--primary-color);
+            background-image: url('data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="white"><path d="M12 12c2.21 0 4-1.79 4-4s-1.79-4-4-4-4 1.79-4 4 1.79 4 4 4zm0 2c-2.67 0-8 1.34-8 4v2h16v-2c0-2.66-5.33-4-8-4z"/></svg>');
+            background-size: cover;
+            background-position: center;
+        }
+
+        /* Navegação Lateral */
+        .sidebar {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: var(--sidebar-width);
+            height: 100%;
+            background-color: var(--card-background);
+            box-shadow: 2px 0 5px var(--shadow-light);
+            transform: translateX(-100%);
+            transition: transform 0.3s ease-in-out;
+            z-index: 1001;
+            padding-top: var(--header-height); /* Para não cobrir o header */
+        }
+
+        .sidebar.active {
+            transform: translateX(0);
+        }
+
+        .sidebar ul {
+            list-style: none;
+            padding: 20px 0;
+        }
+
+        .sidebar ul li a {
+            display: flex;
+            align-items: center;
+            padding: 12px 20px;
+            color: var(--text-color-dark);
+            text-decoration: none;
+            font-weight: 500;
+            transition: background-color 0.2s ease;
+        }
+
+        .sidebar ul li a:hover,
+        .sidebar ul li a.active {
+            background-color: var(--primary-color);
+            color: #fff;
+            border-left: 5px solid var(--accent-color); /* Adiciona um destaque verde */
+        }
+
+        .sidebar ul li a i {
+            margin-right: 15px;
+            font-size: 1.1rem;
+        }
+
+        /* Overlay para fechar o menu */
+        .overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background-color: rgba(0, 0, 0, 0.5);
+            z-index: 1000;
+            display: none; /* Escondido por padrão */
+        }
+
+        .overlay.active {
+            display: block;
+        }
+
+        /* Conteúdo Principal */
+        .app-content {
+            flex-grow: 1;
+            padding: 20px 15px;
+            margin-top: var(--header-height); /* Espaço para o header */
+        }
+
+        /* Seções de Conteúdo */
+        .content-section {
+            max-width: 100%;
+            margin: 0 auto;
+        }
+
+        .content-section h2 {
+            font-size: 1.8rem;
+            margin-bottom: 20px;
+            color: var(--primary-color);
+        }
+
+        .content-section.hidden {
+            display: none;
+        }
+
+        /* Cards */
+        .card {
+            background-color: var(--card-background);
+            border-radius: 8px;
+            box-shadow: 0 4px 8px var(--shadow-light);
+            padding: 20px;
+            margin-bottom: 20px;
+        }
+
+        /* Dashboard */
+        .dashboard-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+            gap: 15px;
+            margin-bottom: 20px;
+        }
+
+        .metric-card {
+            display: flex;
+            align-items: center;
+        }
+
+        .metric-card .card-icon {
+            font-size: 2.5rem;
+            color: var(--primary-color);
+            margin-right: 15px;
+        }
+
+        .metric-card .card-info h3 {
+            font-size: 1rem;
+            color: var(--text-color-light);
+            margin-bottom: 5px;
+        }
+
+        .metric-card .card-info p {
+            font-size: 1.5rem;
+            font-weight: 700;
+            color: var(--text-color-dark);
+        }
+
+        .chart-card h3 {
+            margin-bottom: 15px;
+            color: var(--primary-color);
+        }
+
+        .chart-legend {
+            text-align: center;
+            font-size: 0.9rem;
+            color: var(--text-color-light);
+            margin-top: 10px;
+        }
+
+        .tasks-card h3 {
+            margin-bottom: 15px;
+            color: var(--primary-color);
+        }
+
+        .task-list {
+            list-style: none;
+            padding: 0;
+        }
+
+        .task-list li {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 10px 0;
+            border-bottom: 1px dashed var(--border-color);
+        }
+
+        .task-list li:last-child {
+            border-bottom: none;
+        }
+
+        .task-list .task-title {
+            font-weight: 500;
+            display: block;
+            margin-bottom: 2px;
+        }
+
+        .task-list .task-client {
+            font-size: 0.85rem;
+            color: var(--text-color-light);
+        }
+
+        .task-list .task-due-date {
+            font-size: 0.85rem;
+            color: var(--primary-color);
+            font-weight: 600;
+        }
+
+        /* Ações de barra (pesquisa e botão) */
+        .action-bar {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 20px;
+            gap: 10px;
+            flex-wrap: wrap; /* Permite que os itens quebrem linha em telas menores */
+        }
+
+        .action-bar .search-input {
+            flex: 1; /* Ocupa o espaço disponível */
+            padding: 10px 15px;
+            border: 1px solid var(--border-color);
+            border-radius: 5px;
+            font-size: 1rem;
+            min-width: 150px; /* Garante um tamanho mínimo para o input */
+        }
+
+        .btn {
+            padding: 10px 15px;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+            font-size: 1rem;
+            font-weight: 600;
+            transition: background-color 0.2s ease;
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+            white-space: nowrap; /* Evita que o texto do botão quebre */
+        }
+
+        .btn-primary {
+            background-color: var(--primary-color);
+            color: #fff;
+        }
+
+        .btn-primary:hover {
+            background-color: #0056b3; /* Um pouco mais escuro que --primary-color */
+        }
+
+        .btn-secondary {
+            background-color: var(--secondary-color);
+            color: #fff;
+        }
+
+        .btn-secondary:hover {
+            background-color: #545b62; /* Um pouco mais escuro que --secondary-color */
+        }
+
+        .btn-whatsapp {
+            background-color: #25D366; /* Cor do WhatsApp */
+            color: #fff;
+        }
+
+        .btn-whatsapp:hover {
+            background-color: #1DA851; /* Um pouco mais escuro que #25D366 */
+        }
+
+        .btn-icon {
+            background: none;
+            border: 1px solid var(--border-color);
+            color: var(--text-color-light);
+            padding: 8px;
+            border-radius: 5px;
+            font-size: 1rem;
+        }
+
+        .btn-icon:hover {
+            background-color: var(--border-color);
+        }
+
+        /* Clientes */
+        .customer-list .customer-item {
+            display: flex;
+            justify-content: space-between;
+            align-items: flex-start;
+        }
+
+        .customer-list .customer-item + .customer-item {
+            margin-top: 15px; /* Espaçamento entre cards de clientes */
+        }
+
+        .customer-details h4 {
+            margin-bottom: 5px;
+            font-size: 1.1rem;
+            color: var(--primary-color);
+        }
+
+        .customer-details p {
+            font-size: 0.9rem;
+            color: var(--text-color-dark);
+            margin-bottom: 3px;
+        }
+
+        .customer-contact {
+            font-size: 0.85rem !important; /* Mais importante que o p padrão */
+            color: var(--text-color-light) !important;
+        }
+
+        .customer-added {
+            font-size: 0.8rem;
+            color: var(--text-color-light);
+            white-space: nowrap; /* Evita que a data quebre */
+        }
+
+        /* Formulários */
+        .form-container {
+            background-color: var(--card-background);
+            padding: 20px;
+            border-radius: 8px;
+            box-shadow: 0 4px 8px var(--shadow-light);
+            margin-top: 20px;
+        }
+
+        .form-container h3 {
+            margin-bottom: 20px;
+            color: var(--primary-color);
+            font-size: 1.5rem;
+        }
+
+        .modern-form .form-group {
+            margin-bottom: 15px;
+        }
+
+        .modern-form label {
+            display: block;
+            margin-bottom: 8px;
+            font-weight: 600;
+            color: var(--text-color-dark);
+        }
+
+        .modern-form input[type="text"],
+        .modern-form input[type="tel"],
+        .modern-form input[type="email"],
+        .modern-form input[type="number"],
+        .modern-form input[type="date"],
+        .modern-form select,
+        .modern-form textarea {
+            width: 100%;
+            padding: 10px 12px;
+            border: 1px solid var(--border-color);
+            border-radius: 5px;
+            font-size: 1rem;
+            color: var(--text-color-dark);
+            transition: border-color 0.2s ease, box-shadow 0.2s ease;
+        }
+
+        .modern-form input:focus,
+        .modern-form select:focus,
+        .modern-form textarea:focus {
+            border-color: var(--primary-color);
+            box-shadow: 0 0 0 3px rgba(0, 123, 255, 0.25);
+            outline: none;
+        }
+
+        .modern-form .form-actions {
+            display: flex;
+            justify-content: flex-end;
+            gap: 10px;
+            margin-top: 20px;
+        }
+
+        /* Negócios (Deals) */
+        .deal-pipeline {
+            display: flex;
+            overflow-x: auto; /* Permite scroll horizontal em telas menores */
+            gap: 15px;
+            padding-bottom: 10px; /* Espaço para o scrollbar */
+        }
+
+        .pipeline-column {
+            flex: 0 0 280px; /* Largura fixa para as colunas */
+            min-width: 280px;
+            background-color: var(--background-light);
+            border-radius: 8px;
+            padding: 15px;
+            box-shadow: inset 0 0 5px rgba(0,0,0,0.05); /* Sombra interna para dar profundidade */
+        }
+
+        .pipeline-column h3 {
+            font-size: 1.2rem;
+            color: var(--text-color-dark);
+            margin-bottom: 15px;
+            border-bottom: 2px solid var(--primary-color);
+            padding-bottom: 10px;
+        }
+
+        .deal-item {
+            margin-bottom: 10px;
+            padding: 15px;
+            border-left: 5px solid var(--primary-color); /* Destaque visual */
+        }
+
+        .deal-item h4 {
+            font-size: 1.1rem;
+            margin-bottom: 5px;
+            color: var(--text-color-dark);
+        }
+
+        .deal-item p {
+            font-size: 0.9rem;
+            color: var(--text-color-light);
+            margin-bottom: 3px;
+        }
+
+        .deal-item .deal-value {
+            font-weight: 600;
+            color: var(--accent-color);
+        }
+
+        /* Tarefas (Full List) */
+        .task-list-full .task-item-full {
+            display: flex;
+            flex-direction: column; /* Em mobile, empilha as informações */
+            gap: 10px;
+        }
+
+        .task-list-full .task-item-full + .task-item-full {
+            margin-top: 15px;
+        }
+
+        .task-item-full .task-info h4 {
+            font-size: 1.1rem;
+            color: var(--primary-color);
+            margin-bottom: 5px;
+        }
+
+        .task-item-full .task-info p {
+            font-size: 0.9rem;
+            color: var(--text-color-dark);
+            margin-bottom: 3px;
+        }
+
+        .task-actions-full {
+            display: flex;
+            align-items: center;
+            justify-content: flex-end; /* Alinha botões à direita */
+            gap: 8px;
+            flex-wrap: wrap; /* Permite quebrar em várias linhas se houver muitos botões */
+            margin-top: 10px; /* Espaçamento entre info e botões */
+        }
+
+        .task-actions-full .task-due-date-full {
+            font-size: 0.85rem;
+            color: var(--primary-color);
+            font-weight: 600;
+            margin-right: auto; /* Empurra a data para a esquerda */
+        }
+
+        /* Footer */
+        .app-footer {
+            background-color: var(--card-background);
+            color: var(--text-color-light);
+            text-align: center;
+            padding: 15px;
+            font-size: 0.85rem;
+            border-top: 1px solid var(--border-color);
+            margin-top: auto; /* Empurra o footer para a parte inferior */
+        }
+
+        /* Utilidades */
+        .hidden {
+            display: none !important;
+        }
+
+        /* Responsividade para telas maiores (desktop/tablet) */
+        @media (min-width: 768px) {
+            .menu-toggle {
+                display: none; /* Oculta o botão de menu em telas maiores */
+            }
+
+            .app-header {
+                justify-content: flex-end; /* Ajusta o alinhamento do header */
+                padding: 0 30px;
+            }
+
+            .app-title {
+                text-align: left;
+                margin-left: var(--sidebar-width); /* Ajusta para começar após a sidebar */
+                position: absolute;
+                left: 30px; /* Posiciona o título */
+            }
+
+            .sidebar {
+                transform: translateX(0); /* Sempre visível */
+                box-shadow: 2px 0 5px var(--shadow-light);
+                padding-top: var(--header-height); /* Ajusta para começar abaixo do header fixo */
+            }
+
+            .app-content {
+                margin-left: var(--sidebar-width); /* Desloca o conteúdo para a direita */
+                padding: 30px;
+                margin-top: 0; /* Não precisa de margin-top, pois a sidebar não cobre o header */
+            }
+
+            .overlay {
+                display: none !important; /* Garante que o overlay não apareça */
+            }
+
+            .dashboard-grid {
+                grid-template-columns: repeat(3, 1fr); /* 3 colunas em telas maiores */
+            }
+
+            .action-bar {
+                flex-wrap: nowrap; /* Não quebra linha em telas maiores */
+            }
+
+            .deal-pipeline {
+                flex-wrap: wrap; /* Em telas maiores, pode quebrar em várias linhas se houver espaço */
+                justify-content: flex-start;
+            }
+
+            .pipeline-column {
+                flex: 1; /* Permite que as colunas se expandam */
+                max-width: calc(33.333% - 10px); /* 3 colunas por linha com gap */
+            }
+
+            .task-list-full .task-item-full {
+                flex-direction: row; /* Volta a alinhar em linha */
+                justify-content: space-between;
+                align-items: center;
+            }
+
+            .task-actions-full {
+                margin-top: 0;
+            }
+
+            .task-actions-full .task-due-date-full {
+                margin-right: 15px; /* Mais espaço */
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="app-container">
+        <!-- Header -->
+        <header class="app-header">
+            <button class="menu-toggle" id="menuToggle"><i class="fas fa-bars"></i></button>
+            <h1 class="app-title">CRM STUDIO</h1>
+            <div class="header-actions">
+                <button class="search-button"><i class="fas fa-search"></i></button>
+                <div class="user-avatar"></div>
+            </div>
+        </header>
+
+        <!-- Navegação Lateral (Off-canvas para mobile) -->
+        <nav class="sidebar" id="sidebar">
+            <ul>
+                <li><a href="#" data-target="dashboard" class="active"><i class="fas fa-tachometer-alt"></i> Dashboard</a></li>
+                <li><a href="#" data-target="customers"><i class="fas fa-users"></i> Clientes</a></li>
+                <li><a href="#" data-target="deals"><i class="fas fa-handshake"></i> Negócios</a></li>
+                <li><a href="#" data-target="tasks"><i class="fas fa-clipboard-list"></i> Tarefas</a></li>
+            </ul>
+        </nav>
+        <div class="overlay" id="overlay"></div>
+
+        <!-- Conteúdo Principal -->
+        <main class="app-content">
+            <!-- 1. Dashboard -->
+            <section id="dashboard" class="content-section active">
+                <h2>Dashboard</h2>
+                <div class="dashboard-grid">
+                    <div class="card metric-card">
+                        <div class="card-icon"><i class="fas fa-coins"></i></div>
+                        <div class="card-info">
+                            <h3>Receita Total</h3>
+                            <p id="dashboardRevenue">R$ 0,00</p>
+                        </div>
+                    </div>
+                    <div class="card metric-card">
+                        <div class="card-icon"><i class="fas fa-users"></i></div>
+                        <div class="card-info">
+                            <h3>Total de Clientes</h3>
+                            <p id="dashboardTotalClients">0</p>
+                        </div>
+                    </div>
+                    <div class="card metric-card">
+                        <div class="card-icon"><i class="fas fa-handshake"></i></div>
+                        <div class="card-info">
+                            <h3>Negócios Abertos</h3>
+                            <p id="dashboardOpenDeals">0</p>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="card chart-card">
+                    <h3>Tendência de Vendas</h3>
+                    <canvas id="salesChart"></canvas>
+                    <p class="chart-legend">Vendas (R$)</p>
+                </div>
+
+                <div class="card tasks-card">
+                    <h3>Tarefas Pendentes</h3>
+                    <ul class="task-list" id="dashboardTaskList">
+                        <!-- Tarefas pendentes do dashboard serão injetadas aqui -->
+                        <li>
+                            <div class="task-details">
+                                <span class="task-title">Nenhuma tarefa pendente.</span>
+                                <span class="task-client"></span>
+                            </div>
+                            <span class="task-due-date"></span>
+                        </li>
+                    </ul>
+                </div>
+            </section>
+
+            <!-- 2. Clientes -->
+            <section id="customers" class="content-section hidden">
+                <h2>Clientes</h2>
+                <div class="action-bar">
+                    <input type="text" placeholder="Pesquisar clientes..." class="search-input">
+                    <button class="btn btn-primary" id="addClientBtn"><i class="fas fa-plus"></i> Novo Cliente</button>
+                </div>
+
+                <div class="customer-list" id="customerList">
+                    <!-- Lista de clientes será populada aqui -->
+                    <p class="no-data-message" id="noClientsMessage">Nenhum cliente cadastrado.</p>
+                </div>
+
+                <!-- Formulário para Adicionar Cliente (inicialmente oculto) -->
+                <div id="addClientFormContainer" class="form-container hidden">
+                    <h3>Adicionar Novo Cliente</h3>
+                    <form id="clientForm" class="modern-form">
+                        <div class="form-group">
+                            <label for="clientName">Nome Completo</label>
+                            <input type="text" id="clientName" required>
+                        </div>
+                        <div class="form-group">
+                            <label for="clientWhatsapp">WhatsApp</label>
+                            <input type="tel" id="clientWhatsapp" placeholder="(XX) XXXXX-XXXX" required>
+                        </div>
+                        <div class="form-group">
+                            <label for="clientCompany">Empresa que Trabalha</label>
+                            <input type="text" id="clientCompany" required>
+                        </div>
+                         <div class="form-group">
+                            <label for="clientEmail">Email (Opcional)</label>
+                            <input type="email" id="clientEmail">
+                        </div>
+                        <div class="form-actions">
+                            <button type="submit" class="btn btn-primary">Salvar Cliente</button>
+                            <button type="button" class="btn btn-secondary cancel-form-btn">Cancelar</button>
+                        </div>
+                    </form>
+                </div>
+            </section>
+
+            <!-- 3. Negócios -->
+            <section id="deals" class="content-section hidden">
+                <h2>Negócios</h2>
+                <div class="action-bar">
+                     <input type="text" placeholder="Pesquisar negócios..." class="search-input">
+                    <button class="btn btn-primary" id="addDealBtn"><i class="fas fa-plus"></i> Novo Negócio</button>
+                </div>
+
+                <div class="deal-pipeline" id="dealPipeline">
+                    <div class="pipeline-column">
+                        <h3>Lead</h3>
+                        <div class="deals-for-stage" id="deals-Lead">
+                            <p class="no-data-message">Nenhum negócio nesta etapa.</p>
+                        </div>
+                    </div>
+                    <div class="pipeline-column">
+                        <h3>Contactado</h3>
+                        <div class="deals-for-stage" id="deals-Contactado">
+                            <p class="no-data-message">Nenhum negócio nesta etapa.</p>
+                        </div>
+                    </div>
+                    <div class="pipeline-column">
+                        <h3>Proposta</h3>
+                        <div class="deals-for-stage" id="deals-Proposta">
+                            <p class="no-data-message">Nenhum negócio nesta etapa.</p>
+                        </div>
+                    </div>
+                     <div class="pipeline-column">
+                        <h3>Negociação</h3>
+                        <div class="deals-for-stage" id="deals-Negociação">
+                            <p class="no-data-message">Nenhum negócio nesta etapa.</p>
+                        </div>
+                    </div>
+                    <div class="pipeline-column">
+                        <h3>Ganho</h3>
+                        <div class="deals-for-stage" id="deals-Ganho">
+                            <p class="no-data-message">Nenhum negócio nesta etapa.</p>
+                        </div>
+                    </div>
+                    <div class="pipeline-column">
+                        <h3>Perdido</h3>
+                        <div class="deals-for-stage" id="deals-Perdido">
+                            <p class="no-data-message">Nenhum negócio nesta etapa.</p>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Formulário para Adicionar Negócio (inicialmente oculto) -->
+                <div id="addDealFormContainer" class="form-container hidden">
+                    <h3>Adicionar Novo Negócio</h3>
+                    <form id="dealForm" class="modern-form">
+                        <div class="form-group">
+                            <label for="dealTitle">Título do Negócio</label>
+                            <input type="text" id="dealTitle" required>
+                        </div>
+                        <div class="form-group">
+                            <label for="dealValue">Valor</label>
+                            <input type="number" id="dealValue" step="0.01" required>
+                        </div>
+                        <div class="form-group">
+                            <label for="dealClient">Cliente Associado</label>
+                            <select id="dealClient" required>
+                                <option value="">Selecione um cliente</option>
+                            </select>
+                        </div>
+                        <div class="form-group">
+                            <label for="dealClosingDate">Data de Fechamento Esperada</label>
+                            <input type="date" id="dealClosingDate" required>
+                        </div>
+                        <div class="form-group">
+                            <label for="dealStage">Estágio</label>
+                            <select id="dealStage">
+                                <option value="Lead">Lead</option>
+                                <option value="Contactado">Contactado</option>
+                                <option value="Proposta">Proposta</option>
+                                <option value="Negociação">Negociação</option>
+                                <option value="Ganho">Ganho</option>
+                                <option value="Perdido">Perdido</option>
+                            </select>
+                        </div>
+                        <div class="form-actions">
+                            <button type="submit" class="btn btn-primary">Salvar Negócio</button>
+                            <button type="button" class="btn btn-secondary cancel-form-btn">Cancelar</button>
+                        </div>
+                    </form>
+                </div>
+            </section>
+
+            <!-- 4. Tarefas -->
+            <section id="tasks" class="content-section hidden">
+                <h2>Tarefas</h2>
+                 <div class="action-bar">
+                    <button class="btn btn-primary" id="addTaskBtn"><i class="fas fa-plus"></i> Nova Tarefa</button>
+                </div>
+
+                <div class="task-list-full" id="taskListFull">
+                     <!-- Tarefas serão listadas aqui -->
+                     <p class="no-data-message" id="noTasksMessage">Nenhuma tarefa cadastrada.</p>
+                </div>
+
+                <!-- Formulário para Adicionar Tarefa (inicialmente oculto) -->
+                <div id="addTaskFormContainer" class="form-container hidden">
+                    <h3>Adicionar Nova Tarefa</h3>
+                    <form id="taskForm" class="modern-form">
+                        <div class="form-group">
+                            <label for="taskTitle">Título da Tarefa</label>
+                            <input type="text" id="taskTitle" required>
+                        </div>
+                        <div class="form-group">
+                            <label for="taskClientAssociated">Cliente Associado</label>
+                            <select id="taskClientAssociated" required>
+                                <option value="">Selecione um cliente</option>
+                            </select>
+                        </div>
+                        <div class="form-group">
+                            <label for="taskDueDate">Data de Vencimento</label>
+                            <input type="date" id="taskDueDate" required>
+                        </div>
+                        <div class="form-group">
+                            <label for="taskDescription">Descrição (Opcional)</label>
+                            <textarea id="taskDescription" rows="3"></textarea>
+                        </div>
+                        <div class="form-actions">
+                            <button type="submit" class="btn btn-primary">Salvar Tarefa</button>
+                            <button type="button" class="btn btn-secondary cancel-form-btn">Cancelar</button>
+                        </div>
+                    </form>
+                </div>
+            </section>
+        </main>
+
+        <!-- Footer -->
+        <footer class="app-footer">
+            <p>&copy; Copyright 2025 - Plinio Studio</p>
+        </footer>
+    </div>
+
+    <script>
+        document.addEventListener('DOMContentLoaded', () => {
+            const menuToggle = document.getElementById('menuToggle');
+            const sidebar = document.getElementById('sidebar');
+            const overlay = document.getElementById('overlay');
+            const navLinks = document.querySelectorAll('.sidebar ul li a');
+            const contentSections = document.querySelectorAll('.content-section');
+
+            const addClientBtn = document.getElementById('addClientBtn');
+            const addClientFormContainer = document.getElementById('addClientFormContainer');
+            const clientForm = document.getElementById('clientForm');
+            const customerListDiv = document.getElementById('customerList');
+            const noClientsMessage = document.getElementById('noClientsMessage');
+
+            const addDealBtn = document.getElementById('addDealBtn');
+            const addDealFormContainer = document.getElementById('addDealFormContainer');
+            const dealForm = document.getElementById('dealForm');
+            const dealClientSelect = document.getElementById('dealClient');
+            const dealPipeline = document.getElementById('dealPipeline');
+
+            const addTaskBtn = document.getElementById('addTaskBtn');
+            const addTaskFormContainer = document.getElementById('addTaskFormContainer');
+            const taskForm = document.getElementById('taskForm');
+            const taskClientAssociatedSelect = document.getElementById('taskClientAssociated');
+            const taskListFull = document.getElementById('taskListFull');
+            const noTasksMessage = document.getElementById('noTasksMessage');
+
+            const cancelFormBtns = document.querySelectorAll('.cancel-form-btn');
+
+            // Dashboard elements
+            const dashboardRevenue = document.getElementById('dashboardRevenue');
+            const dashboardTotalClients = document.getElementById('dashboardTotalClients');
+            const dashboardOpenDeals = document.getElementById('dashboardOpenDeals');
+            const dashboardTaskList = document.getElementById('dashboardTaskList');
+
+            // --- Dados da Aplicação (usando localStorage) ---
+            let appData = {
+                clients: [],
+                deals: [],
+                tasks: [],
+                salesChartData: { // Dados fixos para o gráfico de exemplo
+                    labels: ['Jan', 'Fev', 'Mar', 'Abr', 'Mai', 'Jun'],
+                    data: [4000, 3000, 5000, 4200, 5800, 7800]
+                }
+            };
+
+            const STORAGE_KEY = 'crm_studio_data';
+
+            // Carregar dados do localStorage
+            function loadData() {
+                const storedData = localStorage.getItem(STORAGE_KEY);
+                if (storedData) {
+                    appData = JSON.parse(storedData);
+                } else {
+                    // Dados iniciais de exemplo se não houver nada no localStorage
+                    appData.clients = [
+                        { id: 1, name: 'Ana Silva', whatsapp: '5511987654321', company: 'Inovatech Soluções', email: 'ana.silva@example.com', createdAt: '2023-10-19' },
+                        { id: 2, name: 'Bruno Costa', whatsapp: '5521912345678', company: 'Nexus TI', email: 'bruno.costa@example.com', createdAt: '2023-11-04' },
+                        { id: 3, name: 'Carla Dias', whatsapp: '5531955558888', company: 'Digital Hub', email: 'carla.dias@example.com', createdAt: '2024-01-14' },
+                        { id: 4, name: 'Daniel Martins', whatsapp: '5541944447777', company: 'Velocity Corp', email: 'daniel.martins@example.com', createdAt: '2024-01-31' },
+                    ];
+                    appData.deals = [
+                        { id: 101, title: 'Novo Lead - Velocity', value: 12000, clientId: 4, clientName: 'Daniel Martins', closingDate: '2024-08-15', stage: 'Lead', createdAt: '2024-07-20' },
+                        { id: 102, title: 'Consultoria de TI', value: 8000, clientId: 2, clientName: 'Bruno Costa', closingDate: '2024-08-01', stage: 'Contactado', createdAt: '2024-07-18' },
+                        { id: 103, title: 'Projeto Inovatech', value: 10000, clientId: 1, clientName: 'Ana Silva', closingDate: '2024-09-01', stage: 'Proposta', createdAt: '2024-07-22' },
+                    ];
+                    appData.tasks = [
+                        { id: 201, title: 'Follow-up com Ana Silva', description: 'Verificar andamento do projeto Inovatech e se há novas necessidades.', clientId: 1, clientName: 'Ana Silva', clientWhatsapp: '5511987654321', dueDate: '2024-07-27', completed: false, createdAt: '2024-07-20' },
+                        { id: 202, title: 'Agendar reunião com Bruno Costa', description: 'Discutir a consultoria de TI e os próximos passos.', clientId: 2, clientName: 'Bruno Costa', clientWhatsapp: '5521912345678', dueDate: '2024-08-01', completed: false, createdAt: '2024-07-21' },
+                        { id: 203, title: 'Preparar apresentação para Velocity Corp', description: 'Apresentação de proposta de novo negócio.', clientId: 4, clientName: 'Daniel Martins', clientWhatsapp: '5541944447777', dueDate: '2024-08-09', completed: false, createdAt: '2024-07-22' },
+                    ];
+                }
+            }
+
+            // Salvar dados no localStorage
+            function saveData() {
+                localStorage.setItem(STORAGE_KEY, JSON.stringify(appData));
+            }
+
+            // --- Funções de Renderização da UI ---
+
+            function formatCurrency(value) {
+                return value.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' });
+            }
+
+            function formatDate(dateString) {
+                if (!dateString) return 'N/A';
+                const date = new Date(dateString);
+                return date.toLocaleDateString('pt-BR');
+            }
+
+            function getClientById(id) {
+                return appData.clients.find(c => c.id === parseInt(id));
+            }
+
+            function renderDashboard() {
+                const totalRevenue = appData.deals
+                    .filter(deal => deal.stage === 'Ganho')
+                    .reduce((sum, deal) => sum + deal.value, 0);
+                dashboardRevenue.textContent = formatCurrency(totalRevenue);
+
+                dashboardTotalClients.textContent = appData.clients.length;
+
+                const openDealsCount = appData.deals
+                    .filter(deal => deal.stage !== 'Ganho' && deal.stage !== 'Perdido')
+                    .length;
+                dashboardOpenDeals.textContent = openDealsCount;
+
+                // Renderizar tarefas pendentes no dashboard (limitado a 3)
+                dashboardTaskList.innerHTML = '';
+                const pendingTasks = appData.tasks
+                    .filter(task => !task.completed)
+                    .sort((a, b) => new Date(a.dueDate) - new Date(b.dueDate))
+                    .slice(0, 3); // Limita a 3 tarefas
+
+                if (pendingTasks.length === 0) {
+                    dashboardTaskList.innerHTML = `
+                        <li>
+                            <div class="task-details">
+                                <span class="task-title">Nenhuma tarefa pendente.</span>
+                                <span class="task-client"></span>
+                            </div>
+                            <span class="task-due-date"></span>
+                        </li>
+                    `;
+                } else {
+                    pendingTasks.forEach(task => {
+                        const client = getClientById(task.clientId);
+                        const taskItem = `
+                            <li>
+                                <div class="task-details">
+                                    <span class="task-title">${task.title}</span>
+                                    <span class="task-client">${client ? client.name : 'Cliente desconhecido'}</span>
+                                </div>
+                                <span class="task-due-date">${formatDate(task.dueDate)}</span>
+                            </li>
+                        `;
+                        dashboardTaskList.insertAdjacentHTML('beforeend', taskItem);
+                    });
+                }
+            }
+
+            let salesChartInstance = null; // Para armazenar a instância do gráfico
+
+            function renderSalesChart() {
+                const ctx = document.getElementById('salesChart');
+                if (ctx) {
+                    // Destrói a instância anterior se existir
+                    if (salesChartInstance) {
+                        salesChartInstance.destroy();
+                    }
+
+                    salesChartInstance = new Chart(ctx, {
+                        type: 'line',
+                        data: {
+                            labels: appData.salesChartData.labels,
+                            datasets: [{
+                                label: 'Vendas (R$)',
+                                data: appData.salesChartData.data,
+                                borderColor: 'var(--primary-color)',
+                                backgroundColor: 'rgba(0, 123, 255, 0.1)',
+                                borderWidth: 2,
+                                tension: 0.4,
+                                fill: true,
+                                pointBackgroundColor: 'var(--primary-color)',
+                                pointBorderColor: '#fff',
+                                pointHoverBackgroundColor: '#fff',
+                                pointHoverBorderColor: 'var(--primary-color)'
+                            }]
+                        },
+                        options: {
+                            responsive: true,
+                            maintainAspectRatio: false,
+                            plugins: {
+                                legend: {
+                                    display: false
+                                }
+                            },
+                            scales: {
+                                y: {
+                                    beginAtZero: true,
+                                    ticks: {
+                                        callback: function(value) {
+                                            return 'R$ ' + value.toLocaleString('pt-BR');
+                                        }
+                                    }
+                                }
+                            }
+                        }
+                    });
+                }
+            }
+
+            function renderClients() {
+                customerListDiv.innerHTML = ''; // Limpa a lista existente
+                if (appData.clients.length === 0) {
+                    noClientsMessage.classList.remove('hidden');
+                    return;
+                } else {
+                    noClientsMessage.classList.add('hidden');
+                }
+
+                appData.clients.sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt)); // Mais recentes primeiro
+
+                appData.clients.forEach(client => {
+                    const clientItem = `
+                        <div class="card customer-item">
+                            <div class="customer-details">
+                                <h4 class="customer-name">${client.name}</h4>
+                                <p class="customer-company">${client.company || 'N/A'}</p>
+                                <p class="customer-contact">${client.email || 'N/A'} <br> ${client.whatsapp || 'N/A'}</p>
+                            </div>
+                            <span class="customer-added">${formatDate(client.createdAt)}</span>
+                        </div>
+                    `;
+                    customerListDiv.insertAdjacentHTML('beforeend', clientItem);
+                });
+            }
+
+            function renderDeals() {
+                const stages = ['Lead', 'Contactado', 'Proposta', 'Negociação', 'Ganho', 'Perdido'];
+                stages.forEach(stage => {
+                    const stageColumn = document.getElementById(`deals-${stage}`);
+                    if (stageColumn) {
+                        stageColumn.innerHTML = ''; // Limpa a coluna
+                        const dealsInStage = appData.deals
+                            .filter(deal => deal.stage === stage)
+                            .sort((a, b) => new Date(a.closingDate) - new Date(b.closingDate)); // Mais próximos primeiro
+
+                        if (dealsInStage.length === 0) {
+                             stageColumn.innerHTML = `<p class="no-data-message">Nenhum negócio nesta etapa.</p>`;
+                        } else {
+                            dealsInStage.forEach(deal => {
+                                const dealItem = `
+                                    <div class="card deal-item">
+                                        <h4 class="deal-title">${deal.title}</h4>
+                                        <p class="deal-client">${deal.clientName}</p>
+                                        <p class="deal-value">${formatCurrency(deal.value)}</p>
+                                    </div>
+                                `;
+                                stageColumn.insertAdjacentHTML('beforeend', dealItem);
+                            });
+                        }
+                    }
+                });
+            }
+
+            function renderTasks() {
+                taskListFull.innerHTML = ''; // Limpa a lista existente
+                if (appData.tasks.length === 0) {
+                    noTasksMessage.classList.remove('hidden');
+                    return;
+                } else {
+                    noTasksMessage.classList.add('hidden');
+                }
+
+                appData.tasks.sort((a, b) => {
+                    if (a.completed !== b.completed) {
+                        return a.completed ? 1 : -1; // Incompletas primeiro
+                    }
+                    return new Date(a.dueDate) - new Date(b.dueDate); // Depois por data
+                });
+
+                appData.tasks.forEach(task => {
+                    const client = getClientById(task.clientId);
+                    const whatsappNumber = client ? client.whatsapp : '';
+                    const whatsappMessage = encodeURIComponent(`Olá ${client ? client.name : 'cliente'}, tudo bem? Gostaria de fazer um follow-up sobre a tarefa: "${task.title}".`);
+                    const taskItem = `
+                        <div class="card task-item-full ${task.completed ? 'completed-task' : ''}">
+                            <div class="task-info">
+                                <h4 class="task-title-full">${task.title}</h4>
+                                <p class="task-client-full">Cliente: ${client ? client.name : 'Desconhecido'}</p>
+                                ${task.description ? `<p class="task-description-full">${task.description}</p>` : ''}
+                            </div>
+                            <div class="task-actions-full">
+                                <span class="task-due-date-full">Vencimento: ${formatDate(task.dueDate)}</span>
+                                ${whatsappNumber ? `<button class="btn btn-whatsapp" data-whatsapp-number="${whatsappNumber}" data-whatsapp-message="${whatsappMessage}"><i class="fab fa-whatsapp"></i></button>` : ''}
+                                <button class="btn btn-icon toggle-task-complete" data-task-id="${task.id}" title="${task.completed ? 'Marcar como Incompleta' : 'Marcar como Concluída'}"><i class="fas ${task.completed ? 'fa-undo' : 'fa-check'}"></i></button>
+                                <button class="btn btn-icon delete-task-btn" data-task-id="${task.id}" title="Excluir Tarefa"><i class="fas fa-trash"></i></button>
+                            </div>
+                        </div>
+                    `;
+                    taskListFull.insertAdjacentHTML('beforeend', taskItem);
+                });
+            }
+
+            // --- Populamento de Dropdowns de Clientes ---
+            function populateClientDropdowns() {
+                const clientOptions = appData.clients.map(client =>
+                    `<option value="${client.id}">${client.name} (${client.company || 'N/A'})</option>`
+                ).join('');
+
+                dealClientSelect.innerHTML = `<option value="">Selecione um cliente</option>` + clientOptions;
+                taskClientAssociatedSelect.innerHTML = `<option value="">Selecione um cliente</option>` + clientOptions;
+            }
+
+            // --- Funcionalidades Gerais ---
+
+            function refreshUI() {
+                renderDashboard();
+                renderSalesChart();
+                renderClients();
+                renderDeals();
+                renderTasks();
+                populateClientDropdowns();
+            }
+
+            // --- Navegação e Menu Lateral ---
+            function toggleSidebar() {
+                sidebar.classList.toggle('active');
+                overlay.classList.toggle('active');
+            }
+
+            menuToggle.addEventListener('click', toggleSidebar);
+            overlay.addEventListener('click', toggleSidebar);
+
+            navLinks.forEach(link => {
+                link.addEventListener('click', function(e) {
+                    e.preventDefault();
+
+                    navLinks.forEach(l => l.classList.remove('active'));
+                    this.classList.add('active');
+
+                    contentSections.forEach(section => section.classList.add('hidden'));
+                    const targetId = this.getAttribute('data-target');
+                    document.getElementById(targetId).classList.remove('hidden');
+
+                    if (window.innerWidth <= 768) {
+                        toggleSidebar();
+                    }
+                    refreshUI(); // Atualiza a UI ao trocar de seção
+                });
+            });
+
+            // --- Funcionalidades de Formulário (Mostrar/Ocultar) ---
+            function showForm(formContainer) {
+                formContainer.classList.remove('hidden');
+                formContainer.querySelector('input, select, textarea').focus(); // Foca no primeiro campo
+                window.scrollTo({ top: document.body.scrollHeight, behavior: 'smooth' });
+            }
+
+            function hideForm(formContainer, formElement) {
+                formContainer.classList.add('hidden');
+                formElement.reset(); // Limpa o formulário
+            }
+
+            addClientBtn.addEventListener('click', () => showForm(addClientFormContainer));
+            addDealBtn.addEventListener('click', () => showForm(addDealFormContainer));
+            addTaskBtn.addEventListener('click', () => showForm(addTaskFormContainer));
+
+            cancelFormBtns.forEach(btn => {
+                btn.addEventListener('click', (e) => {
+                    const parentFormContainer = e.target.closest('.form-container');
+                    if (parentFormContainer) {
+                        const formElement = parentFormContainer.querySelector('form');
+                        hideForm(parentFormContainer, formElement);
+                    }
+                });
+            });
+
+            // --- Submissão de Formulários ---
+            clientForm.addEventListener('submit', (e) => {
+                e.preventDefault();
+                const newClient = {
+                    id: Date.now(), // ID único simples
+                    name: document.getElementById('clientName').value,
+                    whatsapp: document.getElementById('clientWhatsapp').value,
+                    company: document.getElementById('clientCompany').value,
+                    email: document.getElementById('clientEmail').value,
+                    createdAt: new Date().toISOString().split('T')[0] // Data de criação (YYYY-MM-DD)
+                };
+
+                appData.clients.push(newClient);
+                saveData();
+                hideForm(addClientFormContainer, clientForm);
+                refreshUI();
+                alert(`Cliente ${newClient.name} salvo com sucesso!`);
+            });
+
+            dealForm.addEventListener('submit', (e) => {
+                e.preventDefault();
+                const clientId = document.getElementById('dealClient').value;
+                const client = getClientById(clientId);
+
+                if (!client) {
+                    alert('Selecione um cliente válido.');
+                    return;
+                }
+
+                const newDeal = {
+                    id: Date.now(),
+                    title: document.getElementById('dealTitle').value,
+                    value: parseFloat(document.getElementById('dealValue').value),
+                    clientId: parseInt(clientId),
+                    clientName: client.name,
+                    closingDate: document.getElementById('dealClosingDate').value,
+                    stage: document.getElementById('dealStage').value,
+                    createdAt: new Date().toISOString().split('T')[0]
+                };
+
+                appData.deals.push(newDeal);
+                saveData();
+                hideForm(addDealFormContainer, dealForm);
+                refreshUI();
+                alert(`Negócio "${newDeal.title}" salvo com sucesso!`);
+            });
+
+            taskForm.addEventListener('submit', (e) => {
+                e.preventDefault();
+                const clientId = document.getElementById('taskClientAssociated').value;
+                const client = getClientById(clientId);
+
+                if (!client) {
+                    alert('Selecione um cliente válido.');
+                    return;
+                }
+
+                const newTask = {
+                    id: Date.now(),
+                    title: document.getElementById('taskTitle').value,
+                    description: document.getElementById('taskDescription').value,
+                    clientId: parseInt(clientId),
+                    clientName: client.name,
+                    clientWhatsapp: client.whatsapp,
+                    dueDate: document.getElementById('taskDueDate').value,
+                    completed: false,
+                    createdAt: new Date().toISOString().split('T')[0]
+                };
+
+                appData.tasks.push(newTask);
+                saveData();
+                hideForm(addTaskFormContainer, taskForm);
+                refreshUI();
+                alert(`Tarefa "${newTask.title}" para ${client.name} salva com sucesso!`);
+            });
+
+            // --- Integração WhatsApp (com delegação de eventos para elementos dinâmicos) ---
+            document.addEventListener('click', (e) => {
+                const whatsappBtn = e.target.closest('.btn-whatsapp');
+                if (whatsappBtn) {
+                    const number = whatsappBtn.dataset.whatsappNumber;
+                    const message = whatsappBtn.dataset.whatsappMessage; // Já vem encoded
+                    if (number && message) {
+                        window.open(`https://wa.me/${number}?text=${message}`, '_blank');
+                    } else {
+                        alert('Número de WhatsApp ou mensagem não configurados para este cliente.');
+                    }
+                }
+            });
+
+            // --- Marcar/Desmarcar Tarefa como Concluída (delegação de eventos) ---
+            document.addEventListener('click', (e) => {
+                const toggleBtn = e.target.closest('.toggle-task-complete');
+                if (toggleBtn) {
+                    const taskId = parseInt(toggleBtn.dataset.taskId);
+                    const taskIndex = appData.tasks.findIndex(t => t.id === taskId);
+                    if (taskIndex > -1) {
+                        appData.tasks[taskIndex].completed = !appData.tasks[taskIndex].completed;
+                        saveData();
+                        refreshUI();
+                    }
+                }
+            });
+
+             // --- Excluir Tarefa (delegação de eventos) ---
+            document.addEventListener('click', (e) => {
+                const deleteBtn = e.target.closest('.delete-task-btn');
+                if (deleteBtn) {
+                    const taskId = parseInt(deleteBtn.dataset.taskId);
+                    if (confirm('Tem certeza que deseja excluir esta tarefa?')) {
+                        appData.tasks = appData.tasks.filter(t => t.id !== taskId);
+                        saveData();
+                        refreshUI();
+                        alert('Tarefa excluída com sucesso!');
+                    }
+                }
+            });
+
+            // Carrega os dados e renderiza a UI inicial
+            loadData();
+            refreshUI();
+        });
+    </script>
+</body>
+</html>
